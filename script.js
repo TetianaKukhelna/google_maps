@@ -5,168 +5,202 @@
 */
 // {lat: 48.15174853, lng: 17.07317065};
 // 48.1518531,17.073345
-var uluru = {lat: 48.15174853, lng: 17.07317065};
-var myLatLng = {lat: 48.1518531, lng: 17.073345};
-var infowindow;
-var map;
+const uluru = {lat: 48.15174853, lng: 17.07317065};
+const myLatLng = {lat: 48.1518531, lng: 17.073045};
+var mapObj;
+var feiMarker = null;
+// Create an array of alphabetical characters used to label the markers.
+const labels = 'ABCDEFGHIJ';
+const locations = [
+    {lat: 48.154157, lng: 17.075152},
+    {lat: 48.154630, lng: 17.074401},
+    {lat: 48.154606, lng: 17.075808},
+    {lat: 48.154123, lng: 17.076844},
+    {lat: 48.148312, lng: 17.071956},
+    {lat: 48.147970, lng: 17.072429}
+    // {lat: 48.1536426, lng: 17.0754215},
+]
+
+// FEIplace  TAKE FROM -->>   https://developers.google.com/places/web-service/place-id
+const FeiPlace = "ChIJky-5POyLbEcRvSyAsBN7Zv8"  //{lat: 48.151915, lng: 17.073131}; // FEI
+
 /*
 ======================================================
 -->> Funkcie
 ======================================================
 */
-function initMap() {
+function $(id){
+    if( id.startsWith('#') )
+        return document.getElementById(id.substring(1));
+    return document.querySelectorAll(id)
+}
 
-     map = new google.maps.Map(document.getElementById('map'), {
+function getFeiMarkerLabel(text){
+    return {text: text || "FEI STU", color: "#C70E20", fontWeight: "bold"}
+}
+
+
+function initMap(listener) {
+
+    mapObj = new google.maps.Map($('#map'), {
         mapTypeControl: false,
         center: myLatLng, //uluru,
         zoom: 16
     });
 
-    var marker = new google.maps.Marker({
+    feiMarker = new google.maps.Marker({
         position: myLatLng, //uluru,
-        map: map,
+        animation: google.maps.Animation.DROP,
+        map: mapObj,
         icon: {
-        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-        labelOrigin: new google.maps.Point(75, 32),
-        size: new google.maps.Size(32,32),
-        anchor: new google.maps.Point(16,32)
+            // all marker list here: http://miftyisbored.com/a-complete-list-of-standard-google-maps-marker-icons/
+            url: "http://maps.google.com/mapfiles/ms/icons/snowflake_simple.png",
+            labelOrigin: new google.maps.Point(60, 48),
+            size: new google.maps.Size(32, 32),
+            anchor: new google.maps.Point(16, 32)
         },
-        label: { text: "FEI STU", color: "#C70E20", fontWeight: "bold"}
+        label: getFeiMarkerLabel()
     });
 
-    google.maps.event.addListener(marker, 'click', function() {
+    feiMarker.addListener("click", toggleBounce);
+
+    function toggleBounce() {
+      if (feiMarker.getAnimation() !== null) {
+        feiMarker.setAnimation(null);
+      } else {
+        feiMarker.setAnimation(google.maps.Animation.BOUNCE);
+      }
+    }
+
+    mapObj.addListener('click', () => {
         alert("Latitude: " + myLatLng.lat + " Longitude: " + myLatLng.lng);
     });
 
-  //
-    // Create an array of alphabetical characters used to label the markers.
-    var labels = 'ABCDEFGHIJ';
+    mapObj.addListener("center_changed", () => {
+        // 3 seconds after the center of the map has changed, pan back to the
+        // feiMarker.
+        window.setTimeout(() => {
+            mapObj.panTo(feiMarker.getPosition());
+        }, 3000);
+  });
 
     // Add some markers to the map.
     // Note: The code uses the JavaScript Array.prototype.map() method to
     // create an array of markers based on a given "locations" array.
     // The map() method here has nothing to do with the Google Maps API.
-    var markers = locations.map(function(location, i) {
-    return new google.maps.Marker({
-      position: location,
-      label: labels[i % labels.length]
+    const markers = locations.map(function (location, i) {
+        return new google.maps.Marker({
+            position: location,
+            label: labels[i % labels.length]
+        });
     });
-  });
 
-    // Add a marker clusterer to manage the markers.
-    var markerCluster = new MarkerClusterer(map, markers, {imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
-  //
+    // Add a feiMarker clusterer to manage the markers.
+    const markerClusterUrl = 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'
+    let markerCluster = new MarkerClusterer(mapObj, markers, {imagePath: markerClusterUrl});
 
-    var panorama = new google.maps.StreetViewPanorama(
-      document.getElementById('pano'), {
-        position: myLatLng,
-        pov: {
-          heading: 34,
-          pitch: 10
-        }
-      });
-    map.setStreetView(panorama);
 
-    new AutocompleteDirectionsHandler(map);
+    let panorama = new google.maps.StreetViewPanorama(
+        $('#pano'),
+        {
+            position: myLatLng,
+            pov: {
+                heading: 34,
+                pitch: 10
+            }
+        });
 
+    mapObj.setStreetView(panorama);
+
+    new AutocompleteDirectionsHandler(mapObj);
 }
 
- var locations = [
- {lat: 48.154157, lng: 17.075152},
-  {lat: 48.154630, lng: 17.074401},
-  {lat: 48.154606, lng: 17.075808},
-  {lat: 48.154123, lng: 17.076844},
-  {lat: 48.148312, lng: 17.071956},
-  {lat: 48.147970, lng: 17.072429}
-    // {lat: 48.1536426, lng: 17.0754215},
-  ]
 
-
-  function AutocompleteDirectionsHandler(map) {
+function AutocompleteDirectionsHandler(map) {
     this.map = map;
     this.originPlaceId = null;
-    this.destinationPlaceId = null;//{lat: 48.15174853, lng: 17.07317065};
+    // destinationPlaceId  TAKE FROM -->>   https://developers.google.com/places/web-service/place-id
+    this.destinationPlaceId = FeiPlace  //{lat: 48.151915, lng: 17.073131}; // FEI
     this.travelMode = 'WALKING';
     this.directionsService = new google.maps.DirectionsService;
     this.directionsRenderer = new google.maps.DirectionsRenderer;
     this.directionsRenderer.setMap(map);
 
-    var originInput = document.getElementById('origin-input');
-    var destinationInput = document.getElementById('destination-input');
-    var modeSelector = document.getElementById('mode-selector');
+    const originInput = $('#originInput');
+    const modeSelector = $('#mode-selector');
 
     var originAutocomplete = new google.maps.places.Autocomplete(originInput);
-    // Specify just the place data fields that you need.
-    originAutocomplete.setFields(['place_id']);
+    originAutocomplete.setFields(['place_id']);  // Specify just the place data fields that you need.
 
-    var destinationAutocomplete =
-        new google.maps.places.Autocomplete(destinationInput);
-    // Specify just the place data fields that you need.
-    destinationAutocomplete.setFields(['place_id']);
 
     this.setupClickListener('changemode-walking', 'WALKING');
-    this.setupClickListener('changemode-transit', 'TRANSIT');
     this.setupClickListener('changemode-driving', 'DRIVING');
 
     this.setupPlaceChangedListener(originAutocomplete, 'ORIG');
-    this.setupPlaceChangedListener(destinationAutocomplete, 'DEST');
+    // this.setupPlaceChangedListener(destAutocomplete, 'DEST');
 
-    this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(originInput);
-    this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(
-        destinationInput);
-    this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(modeSelector);
+    let mapControls = this.map.controls[google.maps.ControlPosition.TOP_LEFT]
+    mapControls.push(originInput);
+    mapControls.push(modeSelector);
 }
 
 // Sets a listener on a radio button to change the filter type on Places
 // Autocomplete.
-AutocompleteDirectionsHandler.prototype.setupClickListener = function(
-    id, mode) {
-  var radioButton = document.getElementById(id);
-  var me = this;
+AutocompleteDirectionsHandler.prototype.setupClickListener = function (id, mode) {
+    var radioButton = document.getElementById(id);
+    var me = this;
 
-  radioButton.addEventListener('click', function() {
-    me.travelMode = mode;
-    me.route();
-  });
+    radioButton.addEventListener('click', function () {
+        me.travelMode = mode;
+        me.route();
+    });
 };
 
-AutocompleteDirectionsHandler.prototype.setupPlaceChangedListener = function(autocomplete, mode) {
-  var me = this;
-  autocomplete.bindTo('bounds', this.map);
+AutocompleteDirectionsHandler.prototype.setupPlaceChangedListener = function (autocomplete, mode) {
+    var me = this;
+    autocomplete.bindTo('bounds', this.map);
+    autocomplete.setFields(['place_id', 'geometry', 'name', 'formatted_address']);
+    autocomplete.addListener('place_changed', function () {
+        const place = autocomplete.getPlace();
+        const lng = place.geometry.location.lng();
+        const lat = place.geometry.location.lat();
 
-  autocomplete.addListener('place_changed', function() {
-    var place = autocomplete.getPlace();
-
-    if (!place.place_id) {
-      window.alert('Please select an option from the dropdown list.');
-      return;
-    }
-    if (mode === 'ORIG') {
-      me.originPlaceId = place.place_id;
-    } else {
-      me.destinationPlaceId = place.place_id;
-    }
-    me.route();
-  });
-};
-
-AutocompleteDirectionsHandler.prototype.route = function() {
-  if (!this.originPlaceId || !this.destinationPlaceId) {
-    return;
-  }
-  var me = this;
-
-  this.directionsService.route(
-      {
-        origin: {'placeId': this.originPlaceId},
-        destination: {'placeId': this.destinationPlaceId},
-        travelMode: this.travelMode
-      },
-      function(response, status) {
-        if (status === 'OK') {
-          me.directionsRenderer.setDirections(response);
-        } else {
-          window.alert('Directions request failed due to ' + status);
+        if (!place.place_id) {
+            window.alert('Please select an option from the dropdown list.');
+            return;
         }
-      });
+
+        if (mode === 'ORIG') {
+            me.originPlaceId = place.place_id;
+        } else {
+            me.destinationPlaceId = place.place_id;
+        }
+        me.route();
+    });
+};
+
+AutocompleteDirectionsHandler.prototype.route = function () {
+    if (!this.originPlaceId || !this.destinationPlaceId) {
+        return;
+    }
+    var me = this;
+    // console.log("this.originPlaceId: ", this.originPlaceId)
+    // console.log("this.destinationPlaceId: ", this.destinationPlaceId)
+    this.directionsService.route(
+        {
+            origin: {'placeId': this.originPlaceId},
+            destination: {'placeId': this.destinationPlaceId},
+            travelMode: this.travelMode
+        },
+        function (response, status) {
+            if (status === 'OK') {
+                me.directionsRenderer.setDirections(response);
+                console.log("distance: ", response.routes[0].legs[0].distance.text, "duration: ", response.routes[0].legs[0].duration.text)
+                const distText = response.routes[0].legs[0].distance.text
+                const durText = response.routes[0].legs[0].duration.text
+                feiMarker.setLabel(getFeiMarkerLabel(`FEI STU (${distText}) ${durText}`))
+            } else {
+                window.alert('Directions request failed due to ' + status);
+            }
+        });
 };

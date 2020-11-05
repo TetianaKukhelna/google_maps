@@ -25,8 +25,8 @@ html, body {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-#origin-input,
-#destination-input {
+#originInput,
+#destinationInput {
     background-color: #fff;
     font-family: Roboto;
     font-size: 15px;
@@ -37,8 +37,8 @@ html, body {
     width: 200px;
 }
 
-#origin-input:focus,
-#destination-input:focus {
+#originInput:focus,
+#destinationInput:focus {
     border-color: #4d90fe;
 }
 
