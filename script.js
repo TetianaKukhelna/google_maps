@@ -130,8 +130,7 @@ AutocompleteDirectionsHandler.prototype.setupClickListener = function(
   });
 };
 
-AutocompleteDirectionsHandler.prototype.setupPlaceChangedListener = function(
-    autocomplete, mode) {
+AutocompleteDirectionsHandler.prototype.setupPlaceChangedListener = function(autocomplete, mode) {
   var me = this;
   autocomplete.bindTo('bounds', this.map);
 
